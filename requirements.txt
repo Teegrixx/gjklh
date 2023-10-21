@@ -8,7 +8,7 @@ asyncpg
 psycopg2-binary
 aiosqlite
 fpdf2~=2.6.0
-SQLAlchemy~=2.0.22
+SQLAlchemy~=1.5.0
 psutil~=5.9.0
 telegraph[aio]~=2.1.0
 alembic
