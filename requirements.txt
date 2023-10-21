@@ -3,7 +3,7 @@ Pyrogram~=2.0.97
 beautifulsoup4~=4.8.0
 Pillow~=9.0.1
 tgcrypto
-sqlmodel~=0.0.6
+sqlmodel~=0.0.8
 asyncpg
 psycopg2-binary
 aiosqlite
