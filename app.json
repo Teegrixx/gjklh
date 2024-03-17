@@ -38,7 +38,7 @@
     "formation": {
         "worker": {
             "quantity": 1,
-            "size": "Production"
+            "size": "Basic"
         }
         },
     "image": "heroku/python",
