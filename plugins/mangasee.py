@@ -51,14 +51,14 @@ class MangaSeeClient(MangaClient):
 
     def chapters_from_page(self, page: bytes, manga: MangaCard = None):
 
-        chap_pat = re.compile('vm.Chapters = ([\s\S]*?);')
+        chap_pat = re.compile(r'vm.Chapters = ([\s\S]*?);')
         chapters_str_list = chap_pat.findall(page.decode())
         if not chapters_str_list:
             return []
 
         chapter_list = json.loads(chapters_str_list[0])
 
-        index_pat = re.compile('vm.IndexName = ([\s\S]*?);')
+        index_pat = re.compile(r'vm.IndexName = ([\s\S]*?);')
         index_str_list = index_pat.findall(page.decode())
         if not index_str_list:
             return []
@@ -104,21 +104,21 @@ class MangaSeeClient(MangaClient):
 
     async def pictures_from_chapters(self, content: bytes, response=None):
 
-        chap_pat = re.compile('vm.CurChapter = ([\s\S]*?);')
+        chap_pat = re.compile(r'vm.CurChapter = ([\s\S]*?);')
         chap_str_list = chap_pat.findall(content.decode())
         if not chap_str_list:
             return []
 
         curChapter = json.loads(chap_str_list[0])
 
-        path_pat = re.compile('vm.CurPathName = ([\s\S]*?);')
+        path_pat = re.compile(r'vm.CurPathName = ([\s\S]*?);')
         path_str_list = path_pat.findall(content.decode())
         if not path_str_list:
             return []
 
         curPath = json.loads(path_str_list[0])
 
-        index_pat = re.compile('vm.IndexName = ([\s\S]*?);')
+        index_pat = re.compile(r'vm.IndexName = ([\s\S]*?);')
         index_str_list = index_pat.findall(content.decode())
         if not index_str_list:
             return []
@@ -176,10 +176,4 @@ class MangaSeeClient(MangaClient):
 
         content = await self.get_url(self.base_url.geturl())
 
-        updates = self.updates_from_page(content)
-
-        updated = [lc.url for lc in last_chapters if updates.get(lc.url) and updates.get(lc.url) != lc.chapter_url]
-        not_updated = [lc.url for lc in last_chapters if
-                       not updates.get(lc.url) or updates.get(lc.url) == lc.chapter_url]
-
-        return updated, not_updated
+        updates = self.updates_from_page(content
