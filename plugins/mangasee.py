@@ -143,8 +143,9 @@ class MangaSeeClient(MangaClient):
         documents = await search(query=query, page=page, client=self, text_from_document=text_from_document,
                                  title_from_document=title_from_document)
 
-        return self.mangas_from_page(documents)
-
+      return self.mangas_from_page(documents)
+    async def contains_url(self, url: str):
+        return url.startswith(self.base_url.geturl())
 
 __plugin__ = MangaSeeClient
 
