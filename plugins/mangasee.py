@@ -140,12 +140,40 @@ class MangaSeeClient(MangaClient):
         def title_from_document(doc) -> str:
             return doc['i']
 
-        documents = await search(query=query, page=page, client=self, text_from_document=text_from_document,
-                                 title_from_document=title_from_document)
+        request_url = self.search_url
 
-      return self.mangas_from_page(documents)
+        content = await self.get_url(request_url, method="post")
+
+        documents = json.loads(content)
+
+        results = search(query, documents, title_from_document, text_from_document)[(page - 1) * 20:page * 20]
+
+        return self.mangas_from_page(results)
+
+    async def get_chapters(self, manga_card: MangaCard, page: int = 1) -> List[MangaChapter]:
+
+        request_url = f'{manga_card.url}'
+
+        content = await self.get_url(request_url)
+
+        return self.chapters_from_page(content, manga_card)[(page - 1) * 20:page * 20]
+
+    async def iter_chapters(self, manga_url: str, manga_name) -> AsyncIterable[MangaChapter]:
+
+        manga_card = MangaCard(self, manga_name, manga_url, '')
+
+        request_url = f'{manga_card.url}'
+
+        content = await self.get_url(request_url)
+
+        for ch in self.chapters_from_page(content, manga_card):
+            yield ch
+
     async def contains_url(self, url: str):
         return url.startswith(self.base_url.geturl())
 
-__plugin__ = MangaSeeClient
+    async def check_updated_urls(self, last_chapters: List[LastChapter]):
 
+        content = await self.get_url(self.base_url.geturl())
+
+        updates = self.updates_from_page(content)
