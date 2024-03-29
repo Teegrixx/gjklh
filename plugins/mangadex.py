@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import List, AsyncIterable
 from urllib.parse import urlparse, urljoin, quote
+import asyncio
 
 from plugins.client import MangaClient, MangaCard, MangaChapter, LastChapter
 
@@ -41,7 +42,7 @@ class MangaDexClient(MangaClient):
         self.languages = language
         self.language_param = '&'.join([f'translatedLanguage[]={lang}' for lang in self.languages])
 
-    def mangas_from_page(self, page: bytes):
+    async def mangas_from_page(self, page: bytes):
         dt = json.loads(page.decode())
 
         cards = dt['data']
@@ -60,7 +61,7 @@ class MangaDexClient(MangaClient):
 
         return mangas
 
-    def chapters_from_page(self, page: bytes, manga: MangaCard = None):
+    async def chapters_from_page(self, page: bytes, manga: MangaCard = None):
         dt = json.loads(page.decode())
 
         dt_chapters = dt['data']
@@ -107,7 +108,7 @@ class MangaDexClient(MangaClient):
 
         content = await self.get_url(request_url)
 
-        return self.mangas_from_page(content)
+        return await self.mangas_from_page(content)
 
     async def get_chapters(self, manga_card: MangaCard, page: int = 1, count: int = 10) -> List[MangaChapter]:
 
@@ -119,7 +120,7 @@ class MangaDexClient(MangaClient):
 
         content = await self.get_url(request_url)
 
-        return self.chapters_from_page(content, manga_card)
+        return await self.chapters_from_page(content, manga_card)
 
     async def iter_chapters(self, manga_url: str, manga_name) -> AsyncIterable[MangaChapter]:
         manga = MangaCard(self, manga_name, manga_url, '')
