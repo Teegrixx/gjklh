@@ -605,9 +605,9 @@ async def update_mangas():
         logger.debug(f'Urls:\t{list(urls)}')
         new_urls = [url for url in urls if not chapters_dictionary.get(url)]
         logger.debug(f'New Urls:\t{new_urls}')
-        to_check = [chapters_dictionary[url] for url in urls if chapters_dictionary.get(url)]
-        if len(to_check) == 0:
-            continue
+        to_check = [chapters_dictionary[url] for url in urls if chapters_dictionary.get(url) is not None]
+            if not to_check:
+                continue
         try:
             updated, not_updated = await client.check_updated_urls(to_check)
         except BaseException as e:
