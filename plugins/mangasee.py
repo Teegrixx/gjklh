@@ -75,11 +75,10 @@ class MangaSeeClient(MangaClient):
         return list(map(lambda x: MangaChapter(self, x[0], x[1], manga, []), zip(texts, links)))
 
     def updates_from_page(self, page: bytes):
-
         chap_pat = re.compile(r'vm.LatestJSON = (\[[\s\S]*?]);')
         chapters_str_list = chap_pat.findall(page.decode())
         if not chapters_str_list:
-            return []
+            return {}
 
         chapter_list = json.loads(chapters_str_list[0])
 
@@ -89,49 +88,6 @@ class MangaSeeClient(MangaClient):
         urls = dict(zip(urls[:32], chapter_urls[:32]))
 
         return urls
-
-    def chapterImage(self, ChapterString):
-        Chapter = ChapterString[1:-1]
-        Odd = ChapterString[-1]
-        if Odd == '0':
-            return Chapter
-        else:
-            return Chapter + "." + Odd
-
-    def pageImage(self, PageString):
-        s = "000" + str(PageString)
-        return s[-3:]
-
-    async def pictures_from_chapters(self, content: bytes, response=None):
-
-        chap_pat = re.compile(r'vm.CurChapter = ([\s\S]*?);')
-        chap_str_list = chap_pat.findall(content.decode())
-        if not chap_str_list:
-            return []
-
-        curChapter = json.loads(chap_str_list[0])
-
-        path_pat = re.compile(r'vm.CurPathName = ([\s\S]*?);')
-        path_str_list = path_pat.findall(content.decode())
-        if not path_str_list:
-            return []
-
-        curPath = json.loads(path_str_list[0])
-
-        index_pat = re.compile(r'vm.IndexName = ([\s\S]*?);')
-        index_str_list = index_pat.findall(content.decode())
-        if not index_str_list:
-            return []
-
-        index_str = json.loads(index_str_list[0])
-
-        pages = list(range(1, int(curChapter['Page']) + 1))
-
-        images_url = [
-            f"https://{curPath}/manga/{index_str}/{'' if curChapter['Directory'] == '' else curChapter['Directory'] + '/'}{self.chapterImage(curChapter['Chapter'])}-{self.pageImage(page)}.png"
-            for page in pages]
-
-        return images_url
 
     async def search(self, query: str = "", page: int = 1) -> List[MangaCard]:
         def text_from_document(doc) -> str:
@@ -173,7 +129,6 @@ class MangaSeeClient(MangaClient):
         return url.startswith(self.base_url.geturl())
 
     async def check_updated_urls(self, last_chapters: List[LastChapter]):
-
         content = await self.get_url(self.base_url.geturl())
-
         updates = self.updates_from_page(content)
+        return updates
