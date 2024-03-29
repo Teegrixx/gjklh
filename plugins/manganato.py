@@ -90,12 +90,13 @@ class ManganatoClient(MangaClient):
     async def get_picture(self, manga_chapter: MangaChapter, url, *args, **kwargs):
         pattern = re.compile(r'(.*\.com/)')
         match = re.match(pattern, manga_chapter.url)
-        referer = match.group(1)
+        referer = match.group(1) if match else None
 
         headers = dict(self.headers)
-        headers['Referer'] = referer
+        if referer:
+          headers['Referer'] = referer
 
-        return await super(ManganatoClient, self).get_picture(manga_chapter, url, headers=headers, *args, **kwargs)
+    return await super(ManganatoClient, self).get_picture(manga_chapter, url, headers=headers, *args, **kwargs)
 
     async def search(self, query: str = "", page: int = 1) -> List[MangaCard]:
         query = query.lower().replace(' ', '_')
