@@ -116,7 +116,7 @@ class MangaClient(ClientSession, metaclass=LanguageSingleton):
                 if str(req.status).startswith('2'):
                     break
             else:
-                raise ValueError
+                raise ValueError("Failed to download picture")  # Raise an error if picture download fails
             i += 1
 
         return Path(f'cache/{manga_chapter.client.name}') / folder_name
