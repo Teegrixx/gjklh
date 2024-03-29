@@ -177,3 +177,7 @@ class MangaSeeClient(MangaClient):
         content = await self.get_url(self.base_url.geturl())
 
         updates = self.updates_from_page(content)
+        if updates is None:
+            return {}, []
+
+        return updates, []
