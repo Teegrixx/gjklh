@@ -96,7 +96,7 @@ class ManganatoClient(MangaClient):
         if referer:
           headers['Referer'] = referer
 
-    return await super(ManganatoClient, self).get_picture(manga_chapter, url, headers=headers, *args, **kwargs)
+        return await super(ManganatoClient, self).get_picture(manga_chapter, url, headers=headers, *args, **kwargs)
 
     async def search(self, query: str = "", page: int = 1) -> List[MangaCard]:
         query = query.lower().replace(' ', '_')
