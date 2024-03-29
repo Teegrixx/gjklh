@@ -1,7 +1,9 @@
 import json
 import re
 from typing import List, AsyncIterable
-from urllib.parse import urlparse, urljoin, quote_plus
+from urllib.parse import urlparse, urljoin
+
+import aiohttp
 
 from plugins.client import MangaClient, MangaCard, MangaChapter, LastChapter
 from .search_engine import search
@@ -20,6 +22,20 @@ class MangaSeeClient(MangaClient):
 
     def __init__(self, *args, name="Mangasee", **kwargs):
         super().__init__(*args, name=name, headers=self.pre_headers, **kwargs)
+
+    async def get_cover(self, manga_card: MangaCard, cache: bool = True, file_name: str = None):
+        try:
+            return await self.get_url(manga_card.picture_url, cache=cache, file_name=file_name)
+        except aiohttp.ClientConnectorError as e:
+            # Handle the error (e.g., log the error, serve a default image)
+            print(f"Error fetching cover image: {e}")
+            # Optionally, serve a default image
+            return await self.get_default_cover()
+
+    async def get_default_cover(self):
+        # Placeholder for serving a default cover image
+        # You can implement logic here to serve a default image or URL
+        return b''  # Return empty bytes for now
 
     def mangas_from_page(self, documents: List):
         names = [doc['s'] for doc in documents]
