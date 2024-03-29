@@ -128,12 +128,12 @@ class MangaSeeClient(MangaClient):
     async def contains_url(self, url: str):
         return url.startswith(self.base_url.geturl())
 
-   async def check_updated_urls(self, last_chapters: List[LastChapter]):
-    try:
-        content = await self.get_url(self.base_url.geturl())
-        updates = self.updates_from_page(content)
-        return updates, []
-    except Exception as e:
-        logger.exception(f"Error while checking updates for site: {self.name}, err: {e}")
-        return [], []
+    async def check_updated_urls(self, last_chapters: List[LastChapter]):
+        try:
+            content = await self.get_url(self.base_url.geturl())
+            updates = self.updates_from_page(content)
+            return updates, []
+        except Exception as e:
+            logger.exception(f"Error while checking updates for site: {self.name}, err: {e}")
+            return [], []
 
