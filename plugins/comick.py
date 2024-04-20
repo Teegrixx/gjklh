@@ -5,8 +5,7 @@ from urllib.parse import urlparse, urljoin, quote_plus
 
 from bs4 import BeautifulSoup
 
-from models import MangaCard, MangaChapter
-from plugins.client import MangaClient
+from plugins.client import MangaClient, MangaCard, MangaChapter, LastChapter
 
 
 @dataclass
