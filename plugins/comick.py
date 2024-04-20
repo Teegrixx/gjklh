@@ -1,98 +1,87 @@
+import re
+from dataclasses import dataclass
 from typing import List, AsyncIterable
-from urllib.parse import urlparse, quote_plus
+from urllib.parse import urlparse, urljoin, quote_plus
 
 from bs4 import BeautifulSoup
 
-from plugins.client import MangaClient, MangaCard, MangaChapter, LastChapter
+from models import MangaCard, MangaChapter
+from plugins.client import MangaClient
 
 
-class ComickIOClient(MangaClient):
+@dataclass
+class ComicKioCard(MangaCard):
+    read_url: str
 
+    def get_url(self):
+        return self.read_url
+
+
+class ComicKioClient(MangaClient):
     base_url = urlparse("https://comick.io/")
-    search_url = base_url.geturl()
+    search_url = urljoin(base_url.geturl(), "search")
     search_param = 'q'
-    updates_url = base_url.geturl()
+    home_page = urljoin(base_url.geturl(), "home-page")
+    img_server = "https://meo2.comick.pictures/"
 
     pre_headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'
     }
 
-    def __init__(self, *args, name="ComickIO", **kwargs):
+    def __init__(self, *args, name="ComicK.io", **kwargs):
         super().__init__(*args, name=name, headers=self.pre_headers, **kwargs)
-        
+
     def mangas_from_page(self, page: bytes):
         bs = BeautifulSoup(page, "html.parser")
+        cards = bs.find_all("div", {"class": "comic-item"})
+        mangas = []
 
-        container = bs.find("div", {"class": "listupd"})
-
-        if container is None:
-            return []  # Return an empty list if container is not found
-
-        cards = container.find_all("div", {"class": "bs"})
-
-        mangas = [card.findNext('a') for card in cards]
-        names = [manga.get('title') for manga in mangas]
-        url = [manga.get("href") for manga in mangas]
-        images = [manga.findNext("img").get("src") for manga in mangas]
-
-        mangas = [MangaCard(self, *tup) for tup in zip(names, url, images)]
+        for card in cards:
+            title = card.find("h3").text.strip()
+            url = urljoin(self.base_url.geturl(), card.find("a").get("href"))
+            cover_url = urljoin(self.img_server, card.find("img").get("data-src"))
+            read_url = urljoin(self.base_url.geturl(), card.find("a").get("href"))
+            mangas.append(ComicKioCard(self, title, url, cover_url, read_url))
 
         return mangas
+
     def chapters_from_page(self, page: bytes, manga: MangaCard = None):
         bs = BeautifulSoup(page, "html.parser")
+        chapters = bs.find_all("a", {"class": "chapter-item"})
 
-        container = bs.find("ul", {"class": "list-chapters"})
+        manga_chapters = []
+        for chapter in chapters:
+            chapter_title = chapter.find("div", {"class": "chapter-title"}).text.strip()
+            chapter_url = urljoin(self.base_url.geturl(), chapter.get("href"))
+            manga_chapters.append(MangaChapter(self, chapter_title, chapter_url, manga))
 
-        lis = container.find_all("li")
+        return manga_chapters
 
-        items = [li.findNext('a') for li in lis]
+    def updates_from_page(self, page: bytes):
+        bs = BeautifulSoup(page, "html.parser")
+        updates = {}
 
-        links = [item.get("href") for item in items]
-        texts = [item.findChild('span', {'class': 'chapter-name'}).string.strip() for item in items]
-
-        return list(map(lambda x: MangaChapter(self, x[0], x[1], manga, []), zip(texts, links)))
-
-    def updates_from_page(self, content):
-        bs = BeautifulSoup(content, "html.parser")
-
-        manga_items = bs.find_all("div", {"class": "container"})
-
-        urls = dict()
-
+        manga_items = bs.find_all("div", {"class": "comic-item"})
         for manga_item in manga_items:
-            manga_url = manga_item.findNext("a").get("href")
+            manga_url = urljoin(self.base_url.geturl(), manga_item.find("a").get("href"))
+            chapter_item = manga_item.find("div", {"class": "chapter-item"})
+            if chapter_item:
+                chapter_url = urljoin(self.base_url.geturl(), chapter_item.find("a").get("href"))
+                updates[manga_url] = chapter_url
 
-            if manga_url in urls:
-               continue
-
-            chapter_url = manga_item.findNext("ul").findNext("a").get("href")
-
-            urls[manga_url] = chapter_url
-
-        return urls
-
-    async def pictures_from_chapters(self, content: bytes, response=None):
-        bs = BeautifulSoup(content, "html.parser")
-
-        container = bs.find("div", {"class": "reader"})
-
-        images = map(lambda x: x.findNext('img'), container.findAll('p'))
-
-        images_url = [quote(img.get('src'), safe=':/%') for img in images]
-
-        return images_url
+        return updates
 
     async def search(self, query: str = "", page: int = 1) -> List[MangaCard]:
-        query = quote_plus(query)
+        request_url = self.search_url
 
-        request_url = f'{self.search_url}?{self.search_param}={query}'
+        if query:
+            request_url = f'{request_url}?{self.search_param}={quote_plus(query)}'
 
         content = await self.get_url(request_url)
 
-        return self.mangas_from_page(content)
+        return self.mangas_from_page(content)[(page - 1) * 20:page * 20]
 
     async def get_chapters(self, manga_card: MangaCard, page: int = 1) -> List[MangaChapter]:
-
         request_url = f'{manga_card.url}'
 
         content = await self.get_url(request_url)
@@ -113,13 +102,20 @@ class ComickIOClient(MangaClient):
         return url.startswith(self.base_url.geturl())
 
     async def check_updated_urls(self, last_chapters: List[LastChapter]):
-
-        content = await self.get_url(self.updates_url)
+        content = await self.get_url(self.home_page)
 
         updates = self.updates_from_page(content)
 
         updated = [lc.url for lc in last_chapters if updates.get(lc.url) and updates.get(lc.url) != lc.chapter_url]
-        not_updated = [lc.url for lc in last_chapters if
-                       not updates.get(lc.url) or updates.get(lc.url) == lc.chapter_url]
+        not_updated = [lc.url for lc in last_chapters if not updates.get(lc.url)
+                       or updates.get(lc.url) == lc.chapter_url]
 
         return updated, not_updated
+
+    async def get_cover(self, manga_card: MangaCard, *args, **kwargs):
+        headers = {**self.pre_headers, 'Referer': self.base_url.geturl()}
+        return await super(ComicKioClient, self).get_cover(manga_card, *args, headers=headers, **kwargs)
+
+    async def get_picture(self, manga_chapter: MangaChapter, url, *args, **kwargs):
+        headers = {**self.pre_headers, 'Referer': self.base_url.geturl()}
+        return await super(ComicKioClient, self).get_picture(manga_chapter, url, *args, headers=headers, **kwargs)
