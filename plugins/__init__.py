@@ -15,4 +15,4 @@ from .mangahasu import MangaHasuClient
 from .mangabuddy import MangaBuddyClient
 from .asurascans import AsuraScansClient
 from .ninemanga import NineMangaClient
-from .comick import ComickIOClient
+from .comick import ComicKioClient
