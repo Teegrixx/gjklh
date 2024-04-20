@@ -19,13 +19,16 @@ class ComickIOClient(MangaClient):
 
     def __init__(self, *args, name="ComickIO", **kwargs):
         super().__init__(*args, name=name, headers=self.pre_headers, **kwargs)
-
+        
     def mangas_from_page(self, page: bytes):
         bs = BeautifulSoup(page, "html.parser")
 
-        container = bs.find("div", {"class": "container"})
+        container = bs.find("div", {"class": "listupd"})
 
-        cards = container.find_all("div", {"class": "item"})
+        if container is None:
+            return []  # Return an empty list if container is not found
+
+        cards = container.find_all("div", {"class": "bs"})
 
         mangas = [card.findNext('a') for card in cards]
         names = [manga.get('title') for manga in mangas]
@@ -35,7 +38,6 @@ class ComickIOClient(MangaClient):
         mangas = [MangaCard(self, *tup) for tup in zip(names, url, images)]
 
         return mangas
-
     def chapters_from_page(self, page: bytes, manga: MangaCard = None):
         bs = BeautifulSoup(page, "html.parser")
 
@@ -61,7 +63,7 @@ class ComickIOClient(MangaClient):
             manga_url = manga_item.findNext("a").get("href")
 
             if manga_url in urls:
-                continue
+               continue
 
             chapter_url = manga_item.findNext("ul").findNext("a").get("href")
 
